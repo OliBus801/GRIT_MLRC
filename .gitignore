@@ -1,4 +1,6 @@
 results/*
+tests/results/*
+
 datasets/*
 .idea
 */__pycache__
@@ -8,4 +10,6 @@ datasets/*
 data
 .pyc
 graphgps.bak
+
+
 

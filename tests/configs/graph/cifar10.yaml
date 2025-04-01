@@ -8,6 +8,7 @@ dataset:
   split_mode: standard
   split_dir: tests/splits
 train:
+  mode: custom
   batch_size: 128
   eval_period: 1
   ckpt_period: 100

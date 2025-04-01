@@ -12,7 +12,8 @@ from torch_geometric.graphgym import get_current_gpu_usage
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.logger import infer_task, Logger
 from torch_geometric.graphgym.utils.io import dict_to_json, dict_to_tb
-from torchmetrics.functional import auroc
+#from torchmetrics.functional import auroc
+from torchmetrics.classification import AUROC
 
 import grit.metrics_ogb as metrics_ogb
 from grit.metric_wrapper import MetricWrapper
@@ -68,6 +69,7 @@ class CustomLogger(Logger):
 
         if true.shape[0] < 1e7:  # AUROC computation for very large datasets is too slow.
             # TorchMetrics AUROC on GPU if available.
+            auroc = AUROC(task="binary")
             auroc_score = auroc(pred_score.to(torch.device(cfg.device)),
                                 true.to(torch.device(cfg.device)),
                                 pos_label=1)
@@ -109,10 +111,9 @@ class CustomLogger(Logger):
         if true.shape[0] < 1e7:
             # AUROC computation for very large datasets runs out of memory.
             # TorchMetrics AUROC on GPU is much faster than sklearn for large ds
+            auroc = AUROC(task="multiclass", num_classes=pred_score.shape[1], average='macro')
             res['auc'] = reformat(auroc(pred_score.to(torch.device(cfg.device)),
-                                        true.to(torch.device(cfg.device)).squeeze(),
-                                        num_classes=pred_score.shape[1],
-                                        average='macro'))
+                                        true.to(torch.device(cfg.device)).squeeze()))
 
             if self.test_scores:
                 # SK-learn version.
@@ -126,6 +127,7 @@ class CustomLogger(Logger):
     def classification_multilabel(self):
         true, pred_score = torch.cat(self._true), torch.cat(self._pred)
         reformat = lambda x: round(float(x), cfg.round)
+        auroc = AUROC(task='multilabel')
 
         # Send to GPU to speed up TorchMetrics if possible.
         true = true.to(torch.device(cfg.device))
