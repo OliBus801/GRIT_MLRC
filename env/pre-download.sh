@@ -1,1 +1,1 @@
-pip install deepsnap-0.2.0-py3-none-any.whl ogb-1.3.6-py3-none-any.whl graphgym-0.4.0-py3-none-any.whl outdated-0.2.2-py2.py3-none-any.whl littleutils-0.2.4-py3-none-any.whl
+pip install deepsnap-0.2.0-py3-none-any.whl ogb-1.3.6-py3-none-any.whl graphgym-0.4.0-py3-none-any.whl outdated-0.2.2-py2.py3-none-any.whl littleutils-0.2.4-py3-none-any.whl torch-2.1.1+cu118-cp310-cp310-linux_x86_64.whl
