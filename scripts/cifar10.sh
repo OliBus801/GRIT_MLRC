@@ -1,18 +1,18 @@
 #!/bin/bash
-#SBATCH --time=06:30:00
+#SBATCH --time=5:00:00
 #SBATCH --account=aip-chgag196
 #SBATCH --nodes=1
 #SBATCH --ntasks=4
-#SBATCH --mem-per-cpu=96000M
+#SBATCH --mem-per-cpu=50000M
 #SBATCH --gpus-per-node=h100:4
-#SBATCH --output=results/peptides-struct-GRIT-RRWP/log/slurm_%j.out
+#SBATCH --output=results/cifar10-GRIT-RRWP/log/slurm_%j.out
 
 # On définit les variables d'environnements
-export DATASET=peptides-struct
+export DATASET=cifar10
 
 # Paramètres d'entraînement (split epochs)
 SEED_BASE=${RAND_SEED:-0}
-DELTA_EPOCH=${DELTA_EPOCH:-100}
+DELTA_EPOCH=${DELTA_EPOCH:-50}
 EPOCHS=${EPOCH_GOAL:-${DELTA_EPOCH:-0}}
 MAX_EPOCH=${MAX_EPOCH:-200}
 

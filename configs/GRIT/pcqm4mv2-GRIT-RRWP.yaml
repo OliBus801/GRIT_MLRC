@@ -22,7 +22,7 @@ dataset:
   edge_encoder: True
   edge_encoder_name: Bond
   edge_encoder_bn: False
-posenc_RWPSE:
+posenc_RRWP:
   enable: True
   ksteps: 16
   add_identity: True
@@ -32,9 +32,11 @@ train:
   mode: custom
   batch_size: 256
   eval_period: 1
-  ckpt_best: True
-  ckpt_clean: True
-#  ckpt_period: 100
+  enable_ckpt: True  # Checkpointing can now be disabled to save I/O when e.g. just benchmarking.
+  ckpt_period: 25  # Save model checkpoint every checkpoint period epochs
+  auto_resume: True # Resume training from the latest checkpoint in the output directory
+  ckpt_best: False  # WARNING: Checkpoint every epoch a better model is found may increase I/O significantly.
+  ckpt_clean: True # Delete old ckpt each time.
 model:
   type: GritTransformer
   loss_fun: l1

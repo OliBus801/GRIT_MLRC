@@ -13,7 +13,7 @@ from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.logger import infer_task, Logger
 from torch_geometric.graphgym.utils.io import dict_to_json, dict_to_tb
 #from torchmetrics.functional import auroc
-from torchmetrics.classification import AUROC
+from torchmetrics.classification import AUROC, MultilabelAccuracy, MultilabelAveragePrecision, MultilabelAUROC, BinaryAUROC
 
 import grit.metrics_ogb as metrics_ogb
 from grit.metric_wrapper import MetricWrapper
@@ -69,10 +69,9 @@ class CustomLogger(Logger):
 
         if true.shape[0] < 1e7:  # AUROC computation for very large datasets is too slow.
             # TorchMetrics AUROC on GPU if available.
-            auroc = AUROC(task="binary")
+            auroc = BinaryAUROC().to(cfg.device)
             auroc_score = auroc(pred_score.to(torch.device(cfg.device)),
-                                true.to(torch.device(cfg.device)),
-                                pos_label=1)
+                                true.to(torch.device(cfg.device)))
             if self.test_scores:
                 # SK-learn version.
                 try:
@@ -126,24 +125,35 @@ class CustomLogger(Logger):
 
     def classification_multilabel(self):
         true, pred_score = torch.cat(self._true), torch.cat(self._pred)
-        reformat = lambda x: round(float(x), cfg.round)
-        auroc = AUROC(task='multilabel')
+        reformat = lambda x: round(float(x), cfg.round)        
 
         # Send to GPU to speed up TorchMetrics if possible.
-        true = true.to(torch.device(cfg.device))
+        true = true.to(torch.device(cfg.device)).long()
         pred_score = pred_score.to(torch.device(cfg.device))
+
+        acc = MultilabelAccuracy(num_labels=pred_score.shape[1]).to(cfg.device)
+        ap = MultilabelAveragePrecision(num_labels=pred_score.shape[1]).to(cfg.device)
+        auroc = MultilabelAUROC(num_labels=pred_score.shape[1]).to(cfg.device)
+        """
         acc = MetricWrapper(metric='accuracy',
                             target_nan_mask='ignore-mean-label',
+                            task='multilabel',
+                            num_labels=pred_score.shape[1],
                             threshold=0.,
                             cast_to_int=True)
         ap = MetricWrapper(metric='averageprecision',
                            target_nan_mask='ignore-mean-label',
+                           task='multilabel',
+                           num_labels=pred_score.shape[1],
                            pos_label=1,
                            cast_to_int=True)
         auroc = MetricWrapper(metric='auroc',
                               target_nan_mask='ignore-mean-label',
+                              task='multilabel',
+                              num_labels=pred_score.shape[1],
                               pos_label=1,
                               cast_to_int=True)
+        """
         results = {
             'accuracy': reformat(acc(pred_score, true)),
             'ap': reformat(ap(pred_score, true)),
