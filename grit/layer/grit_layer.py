@@ -84,13 +84,13 @@ class MultiHeadAttentionLayerGritSparse(nn.Module):
     def propagate_attention(self, batch):
         src = batch.K_h[batch.edge_index[0]]      # (num relative) x num_heads x out_dim
         dest = batch.Q_h[batch.edge_index[1]]     # (num relative) x num_heads x out_dim
-        score = src + dest                        # element-wise multiplication
+        score = src + dest                        # element-wise multiplication ### ACTUALLY ADDITION
 
         if batch.get("E", None) is not None:
             batch.E = batch.E.view(-1, self.num_heads, self.out_dim * 2)
             E_w, E_b = batch.E[:, :, :self.out_dim], batch.E[:, :, self.out_dim:]
             # (num relative) x num_heads x out_dim
-            score = score * E_w
+            score = score * E_w # element-wise multiplication IS HERE
             score = torch.sqrt(torch.relu(score)) - torch.sqrt(torch.relu(-score))
             score = score + E_b
 
@@ -120,12 +120,15 @@ class MultiHeadAttentionLayerGritSparse(nn.Module):
             rowV = scatter(e_t * score, batch.edge_index[1], dim=0, reduce="add")
             rowV = oe.contract("nhd, dhc -> nhc", rowV, self.VeRow, backend="torch")
             batch.wV = batch.wV + rowV
+        
+        exit()
 
     def forward(self, batch):
         Q_h = self.Q(batch.x)
         K_h = self.K(batch.x)
 
         V_h = self.V(batch.x)
+
         if batch.get("edge_attr", None) is not None:
             batch.E = self.E(batch.edge_attr)
         else:
@@ -137,6 +140,8 @@ class MultiHeadAttentionLayerGritSparse(nn.Module):
         self.propagate_attention(batch)
         h_out = batch.wV
         e_out = batch.get('wE', None)
+
+        exit()
 
         return h_out, e_out
 
@@ -224,7 +229,7 @@ class GritTransformerLayer(nn.Module):
         # -------- Deg Scaler Option ------
 
         if self.deg_scaler:
-            self.deg_coef = nn.Parameter(torch.zeros(1, out_dim//num_heads * num_heads, 2))
+            self.deg_coef = nn.Parameter(torch.zeros(1, out_dim//num_heads * num_heads, 2))     
             nn.init.xavier_normal_(self.deg_coef)
 
         if self.layer_norm:
@@ -255,6 +260,9 @@ class GritTransformerLayer(nn.Module):
         h = batch.x
         num_nodes = batch.num_nodes
         log_deg = get_log_deg(batch)
+        print(f"Dimension of log_deg: {log_deg.shape}")
+        print("Interrupting the program for debugging purposes.")
+        exit()
 
         h_in1 = h  # for first residual connection
         e_in1 = batch.get("edge_attr", None)
@@ -262,7 +270,6 @@ class GritTransformerLayer(nn.Module):
         # multi-head attention out
 
         h_attn_out, e_attn_out = self.attention(batch)
-
         h = h_attn_out.view(num_nodes, -1)
         h = F.dropout(h, self.dropout, training=self.training)
 
@@ -270,6 +277,7 @@ class GritTransformerLayer(nn.Module):
         if self.deg_scaler:
             h = torch.stack([h, h * log_deg], dim=-1)
             h = (h * self.deg_coef).sum(dim=-1)
+            print(f"Dimensions of h after degree scaling: {h.shape}")
 
         h = self.O_h(h)
         if e_attn_out is not None:
@@ -289,6 +297,7 @@ class GritTransformerLayer(nn.Module):
             if e is not None: e = self.layer_norm1_e(e)
 
         if self.batch_norm:
+            print(f"Dimensions of h before batch BATCHNORM: {h.shape}")
             h = self.batch_norm1_h(h)
             if e is not None: e = self.batch_norm1_e(e)
 
